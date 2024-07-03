@@ -4,46 +4,90 @@ using UnityEngine;
 
 public class Enemy : MonoBehaviour
 {
-    public float minShootInterval = 1f;
-    public float maxShootInterval = 3f;
-    public GameObject projectilePrefab; // Prefab del proyectil que dispara este enemigo
+    public float Health = 3;
+    public float Speed = 1;
+    public float FireRate = 1;
+    public float SizeMultiplier = 1;
 
-    protected float nextShootTime;
+    public GameObject FirePosition;
+    public GameObject Projectile;
 
-    protected virtual void Start()
+    private float fireTimer;
+    private IMovementStrategy movementStrategy;
+
+
+    public int PointValue = 10;
+
+    public void Start()
     {
-        InitializeEnemy();
-        CalculateNextShootTime();
+        ChooseMovementStrategy();
+        fireTimer = FireRate;
     }
 
-    protected virtual void Update()
+    void Update()
     {
-        if (Time.time >= nextShootTime)
+        movementStrategy.Move(this);
+        HandleShooting();
+    }
+
+    private void ChooseMovementStrategy()
+    {
+        int strategyIndex = Random.Range(0, 3);
+        switch (strategyIndex)
         {
-            ShootProjectile();
-            CalculateNextShootTime();
+            case 0:
+                movementStrategy = new NormalMovement();
+                break;
+            case 1:
+                movementStrategy = new ZigZagMovement();
+                break;
+            case 2:
+                movementStrategy = new FighterMovement();
+                break;
         }
     }
 
-    protected virtual void InitializeEnemy()
+    private void HandleShooting()
     {
-        // Implementar en los tipos específicos de enemigo
+        fireTimer -= Time.deltaTime;
+        if (fireTimer <= 0)
+        {
+            Shoot();
+            fireTimer = FireRate;
+        }
     }
 
-    protected virtual void CalculateNextShootTime()
+    public virtual void Shoot()
     {
-        nextShootTime = Time.time + Random.Range(minShootInterval, maxShootInterval);
+        GameObject projectileInstance = Instantiate(Projectile, FirePosition.transform.position, Quaternion.identity);
+        projectileInstance.transform.localScale *= SizeMultiplier;
     }
 
-    protected virtual void ShootProjectile()
+    public void TakeDamage()
     {
-        GameObject instantiatedProjectile = Instantiate(projectilePrefab, transform.position, Quaternion.identity);
-        instantiatedProjectile.GetComponent<EnemyProjectile>().SetShootDirection(Vector3.down); // Dirección de disparo hacia abajo por defecto
-        instantiatedProjectile.GetComponent<EnemyProjectile>().SetProjectileSize(1.0f); // Tamaño base del proyectil
+        Health--;
+        if (Health <= 0)
+        {
+            Die();
+        }
     }
 
-    public void SetMovementStrategy(IMovementStrategy strategy)
+    public virtual void Die()
     {
-        // Implementar la lógica para asignar la estrategia de movimiento
+        PlayerScore.Instance.AddScore(PointValue);
+        Destroy(this.gameObject);
+    }
+
+    public virtual void OnCollisionEnter2D(Collision2D collision)
+    {
+        if (collision.gameObject.CompareTag("Projectile"))
+        {
+            TakeDamage();
+            Destroy(collision.gameObject);
+        }
+        if (collision.gameObject.CompareTag("Player"))
+        {
+            Die();
+        }
     }
 }

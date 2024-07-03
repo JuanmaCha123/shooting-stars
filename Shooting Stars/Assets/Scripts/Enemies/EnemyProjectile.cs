@@ -4,40 +4,26 @@ using UnityEngine;
 
 public class EnemyProjectile : MonoBehaviour
 {
-    public float speed = 10f;
-    private Vector3 shootDirection; // Dirección en la que fue disparado el proyectil
+    public float Speed = 5f;
 
     void Update()
     {
-        Move();
+        // Mover el proyectil hacia abajo
+        transform.Translate(Vector3.down * Speed * Time.deltaTime);
 
-        // Destruir el proyectil si sale de la vista de la cámara
-        if (!IsVisibleByCamera())
+        // Verificar si el proyectil ha salido de los límites de la cámara y destruirlo
+        if (IsOutOfCameraBounds())
         {
             Destroy(gameObject);
         }
     }
 
-    private void Move()
+    private bool IsOutOfCameraBounds()
     {
-        transform.Translate(shootDirection * speed * Time.deltaTime, Space.World);
-    }
+        // Obtener las coordenadas del proyectil en relación a la cámara
+        Vector3 viewportPosition = Camera.main.WorldToViewportPoint(transform.position);
 
-    private bool IsVisibleByCamera()
-    {
-        Camera mainCamera = Camera.main;
-        Vector3 viewportPosition = mainCamera.WorldToViewportPoint(transform.position);
-        return (viewportPosition.x > 0 && viewportPosition.x < 1 && viewportPosition.y > 0 && viewportPosition.y < 1);
-    }
-
-    public void SetShootDirection(Vector3 direction)
-    {
-        shootDirection = direction.normalized;
-        transform.rotation = Quaternion.LookRotation(Vector3.forward, shootDirection);
-    }
-
-    public void SetProjectileSize(float sizeMultiplier)
-    {
-        transform.localScale *= sizeMultiplier;
+        // Verificar si está fuera de los límites de la cámara
+        return viewportPosition.y < 0;
     }
 }
